@@ -1,0 +1,197 @@
+// Schéma Prisma — Financia (gestion financière personnelle)
+// Convention monétaire : tous les montants sont stockés en Decimal(19,2)
+// (type PostgreSQL NUMERIC) pour éviter les erreurs d'arrondi des flottants.
+// Devise par défaut : MGA (Ariary).
+//
+// Note : le modèle financier `Account` représente un compte bancaire/espèces.
+// Les futurs modèles Auth.js devront utiliser des noms distincts
+// (p. ex. `AuthAccount`, `Session`) pour éviter toute collision.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum AccountType {
+  CASH
+  BANK
+  MOBILE_MONEY
+  SAVINGS
+  OTHER
+}
+
+enum BudgetPeriod {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum GoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  INFO
+  BUDGET_ALERT
+  GOAL_UPDATE
+  REMINDER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  firstName    String?
+  lastName     String?
+  name         String?
+  passwordHash String?
+  image        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts      Account[]
+  transactions  Transaction[]
+  categories    Category[]
+  budgets       Budget[]
+  goals         SavingsGoal[]
+  notifications Notification[]
+}
+
+model Account {
+  id           String      @id @default(cuid())
+  name         String
+  type         AccountType @default(CASH)
+  currency     String      @default("MGA") @db.Char(3)
+  balance      Decimal     @default(0) @db.Decimal(19, 2)
+  isArchived   Boolean     @default(false)
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[] @relation("AccountTransactions")
+  transfersIn  Transaction[] @relation("TransferDestination")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([userId, isArchived])
+}
+
+model Category {
+  id           String          @id @default(cuid())
+  name         String
+  icon         String?
+  color        String?
+  type         TransactionType
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@unique([userId, name, type])
+  @@index([userId])
+  @@index([userId, type])
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  // Montant toujours positif ; le sens est porté par `type`.
+  // Contrainte applicative : amount > 0 (validée via Zod côté app).
+  amount      Decimal         @db.Decimal(19, 2)
+  description String
+  note        String?         @db.Text
+  type        TransactionType
+  date        DateTime        @default(now()) @db.Timestamptz(3)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountId String
+  account   Account @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // Compte destinataire pour les virements internes (type TRANSFER).
+  toAccountId String?
+  toAccount   Account? @relation("TransferDestination", fields: [toAccountId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date(sort: Desc)])
+  @@index([accountId, date(sort: Desc)])
+  @@index([categoryId])
+  @@index([userId, type, date(sort: Desc)])
+}
+
+model Budget {
+  id         String       @id @default(cuid())
+  name       String
+  amountLimit Decimal     @db.Decimal(19, 2)
+  period     BudgetPeriod @default(MONTHLY)
+  startDate  DateTime     @db.Date
+  endDate    DateTime     @db.Date
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, startDate])
+  @@index([userId, period])
+  @@index([categoryId])
+}
+
+model SavingsGoal {
+  id            String     @id @default(cuid())
+  name          String
+  targetAmount  Decimal    @db.Decimal(19, 2)
+  currentAmount Decimal    @default(0) @db.Decimal(19, 2)
+  deadline      DateTime?  @db.Date
+  status        GoalStatus @default(ACTIVE)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String           @db.Text
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt(sort: Desc)])
+}

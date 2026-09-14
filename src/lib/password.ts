@@ -1,0 +1,15 @@
+import bcrypt from "bcryptjs";
+
+/** Coût bcrypt : 12 en production, réduit en test pour la rapidité. */
+const SALT_ROUNDS = process.env.NODE_ENV === "test" ? 4 : 12;
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, SALT_ROUNDS);
+}
+
+export async function verifyPassword(
+  password: string,
+  passwordHash: string,
+): Promise<boolean> {
+  return bcrypt.compare(password, passwordHash);
+}
