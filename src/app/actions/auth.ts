@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth-schemas";
 import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_CATEGORIES } from "@/lib/category-schemas";
 
 export type AuthActionResult = {
   error?: string;
@@ -41,14 +42,20 @@ export async function registerAction(
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "Un compte existe déjà avec cet email." };
 
-  await prisma.user.create({
-    data: {
-      firstName,
-      lastName,
-      name: `${firstName} ${lastName}`,
-      email,
-      passwordHash: await hashPassword(password),
-    },
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        firstName,
+        lastName,
+        name: `${firstName} ${lastName}`,
+        email,
+        passwordHash: await hashPassword(password),
+      },
+    });
+    // Jeu de catégories par défaut (6 revenus + 11 dépenses).
+    await tx.category.createMany({
+      data: DEFAULT_CATEGORIES.map((c) => ({ ...c, userId: user.id })),
+    });
   });
 
   redirect("/login?registered=1");
