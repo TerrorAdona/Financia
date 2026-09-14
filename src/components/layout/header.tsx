@@ -3,6 +3,7 @@ import { LayoutDashboard, Wallet } from "lucide-react";
 
 import { logoutAction } from "@/app/actions/auth";
 import { auth } from "@/auth";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { APP_NAME } from "@/constants/app";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,8 @@ export async function Header() {
           </span>
           {APP_NAME}
         </Link>
-        <nav className="flex items-center gap-2 text-sm">
+        <nav className="flex items-center gap-1 text-sm sm:gap-2">
+          <ThemeToggle />
           {loggedIn ? (
             <>
               <Link

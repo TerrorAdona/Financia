@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { LogOut } from "lucide-react";
 
 import { logoutAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { requireUserId } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Vue d'ensemble de vos finances.",
+};
 
 /**
  * Tableau de bord minimal — prouve la session et l'isolation des données.

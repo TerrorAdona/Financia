@@ -27,6 +27,7 @@ enum AccountType {
   BANK
   MOBILE_MONEY
   SAVINGS
+  CARD
   OTHER
 }
 

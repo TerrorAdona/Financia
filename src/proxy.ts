@@ -4,10 +4,29 @@ import type { NextRequest } from "next/server";
 /**
  * Proxy Next.js 16 (ex-Middleware) — contrôle optimiste basé sur la
  * présence du cookie de session Auth.js. La vérification définitive
- * (signature JWT) est faite côté serveur via `auth()` dans le layout
- * `/dashboard` et `requireUserId()`.
+ * (signature JWT) est faite côté serveur dans le layout `(app)`
+ * et via `requireUserId()`.
  */
 const SESSION_COOKIES = ["authjs.session-token", "__Secure-authjs.session-token"];
+
+/** Préfixes des routes privées de l'espace connecté. */
+const PRIVATE_PREFIXES = [
+  "/dashboard",
+  "/transactions",
+  "/accounts",
+  "/budgets",
+  "/objectifs",
+  "/analyses",
+  "/categories",
+  "/notifications",
+  "/parametres",
+];
+
+function isPrivatePath(pathname: string): boolean {
+  return PRIVATE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 function hasSessionCookie(request: NextRequest): boolean {
   return SESSION_COOKIES.some((name) => request.cookies.has(name));
@@ -17,7 +36,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const loggedIn = hasSessionCookie(request);
 
-  if (pathname.startsWith("/dashboard") && !loggedIn) {
+  if (isPrivatePath(pathname) && !loggedIn) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -29,5 +48,17 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: [
+    "/dashboard/:path*",
+    "/transactions/:path*",
+    "/accounts/:path*",
+    "/budgets/:path*",
+    "/objectifs/:path*",
+    "/analyses/:path*",
+    "/categories/:path*",
+    "/notifications/:path*",
+    "/parametres/:path*",
+    "/login",
+    "/register",
+  ],
 };
