@@ -1,74 +1,99 @@
 import type { Metadata } from "next";
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LayoutDashboard, Plus, Wallet } from "lucide-react";
 
-import { logoutAction } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
+import { DashboardCards } from "@/components/dashboard/dashboard-cards";
+import {
+  Highlights,
+  LatestTransactions,
+  TopAccounts,
+} from "@/components/dashboard/dashboard-lists";
+import { EvolutionChart } from "@/components/dashboard/evolution-chart";
+import { ExpensesPie } from "@/components/dashboard/expenses-pie";
+import { buttonVariants } from "@/components/ui/button";
 import { requireUserId } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
+import {
+  getDashboardData,
+  parseDashboardRange,
+} from "@/lib/services/dashboard";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Dashboard",
   description: "Vue d'ensemble de vos finances.",
 };
 
-/**
- * Tableau de bord minimal — prouve la session et l'isolation des données.
- * Toutes les requêtes sont filtrées par `userId` de la session.
- * Les fonctionnalités financières seront développées ultérieurement.
- */
-export default async function DashboardPage() {
+function DashboardEmpty() {
+  return (
+    <section className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-muted">
+        <LayoutDashboard className="size-7 text-muted-foreground" aria-hidden="true" />
+      </span>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tight">
+          Bienvenue sur votre dashboard
+        </h1>
+        <p className="max-w-md text-muted-foreground">
+          Créez votre premier compte pour voir ici votre solde, vos revenus,
+          vos dépenses et vos graphiques.
+        </p>
+      </div>
+      <Link href="/accounts" className={cn(buttonVariants({ size: "lg" }))}>
+        <Wallet className="size-4" aria-hidden="true" />
+        Créer un compte
+      </Link>
+    </section>
+  );
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
   const userId = await requireUserId();
+  const params = await searchParams;
+  const data = await getDashboardData(userId, parseDashboardRange(params.range));
 
-  const [user, accountCount, transactionCount] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { firstName: true, lastName: true, name: true, email: true },
-    }),
-    prisma.account.count({ where: { userId } }),
-    prisma.transaction.count({ where: { userId } }),
-  ]);
-
-  const displayName =
-    user?.name ??
-    `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() ??
-    user?.email;
+  if (!data) return <DashboardEmpty />;
 
   return (
-    <section className="flex flex-1 flex-col gap-6">
+    <section className="flex flex-1 flex-col gap-4 sm:gap-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Bonjour{displayName ? `, ${displayName}` : ""} 👋
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Connecté en tant que {user?.email} — vos données sont isolées par
-            compte.
+            Vue d&apos;ensemble de vos finances en {data.currency === "MGA" ? "Ariary" : data.currency}.
           </p>
         </div>
-        <form action={logoutAction}>
-          <Button variant="outline" type="submit">
-            <LogOut className="size-4" aria-hidden="true" />
-            Déconnexion
-          </Button>
-        </form>
+        <Link href="/transactions" className={cn(buttonVariants())}>
+          <Plus className="size-4" aria-hidden="true" />
+          Nouvelle transaction
+        </Link>
       </div>
 
-      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border bg-card p-4">
-          <dt className="text-sm text-muted-foreground">Comptes</dt>
-          <dd className="mt-1 text-2xl font-bold">{accountCount}</dd>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <dt className="text-sm text-muted-foreground">Transactions</dt>
-          <dd className="mt-1 text-2xl font-bold">{transactionCount}</dd>
-        </div>
-      </dl>
+      {data.excludedAccounts > 0 ? (
+        <p className="rounded-lg border px-3 py-2 text-sm text-muted-foreground" role="note">
+          {data.excludedAccounts} compte(s) dans une autre devise exclus des
+          totaux et graphiques.
+        </p>
+      ) : null}
 
-      <p className="text-sm text-muted-foreground">
-        Page protégée : accessible uniquement aux utilisateurs connectés. Les
-        graphiques et la gestion financière seront construits dans les
-        prochaines étapes.
-      </p>
+      <DashboardCards data={data} />
+
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <EvolutionChart data={data} />
+        </div>
+        <ExpensesPie slices={data.expensesByCategory} currency={data.currency} />
+      </div>
+
+      <Highlights data={data} />
+
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+        <LatestTransactions data={data} />
+        <TopAccounts data={data} />
+      </div>
     </section>
   );
 }
