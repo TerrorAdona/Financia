@@ -1,9 +1,12 @@
-import type { FieldError } from "react-hook-form";
-
 import { cn } from "@/lib/utils";
 
 export const inputClassName =
   "flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive";
+
+/** Message d'erreur de champ (compatible FieldError RHF et unions Zod). */
+export type FieldMessage = {
+  message?: string;
+};
 
 export function Field({
   id,
@@ -13,7 +16,7 @@ export function Field({
 }: {
   id: string;
   label: string;
-  error?: FieldError;
+  error?: FieldMessage;
   children: React.ReactNode;
 }) {
   return (

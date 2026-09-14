@@ -19,6 +19,7 @@ export function NotificationsButton({ unreadCount }: { unreadCount: number }) {
       }
       title="Notifications"
       render={<Link href="/notifications" />}
+      nativeButton={false}
       className="relative"
     >
       <Bell className="size-4" aria-hidden="true" />
