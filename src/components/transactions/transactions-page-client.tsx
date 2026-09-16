@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Plus, SearchX } from "lucide-react";
+import { ArrowLeftRight, ArrowRightLeft, Plus, SearchX } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/components/transactions/transaction-form-dialog";
 import { TransactionsPagination } from "@/components/transactions/transactions-pagination";
 import { TransactionsTable } from "@/components/transactions/transactions-table";
+import { TransferDialog } from "@/components/transfers/transfer-dialog";
 import { Button } from "@/components/ui/button";
 import type { TransactionListResult } from "@/lib/services/transactions";
 
@@ -31,6 +32,7 @@ export function TransactionsPageClient({
   hasActiveFilters: boolean;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const empty = result.total === 0;
 
   return (
@@ -42,10 +44,26 @@ export function TransactionsPageClient({
             Revenus, dépenses et transferts entre vos comptes.
           </p>
         </div>
-        <Button type="button" onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" aria-hidden="true" />
-          Nouvelle transaction
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setTransferOpen(true)}
+            disabled={formData.accounts.length < 2}
+            title={
+              formData.accounts.length < 2
+                ? "Créez au moins deux comptes pour effectuer un transfert."
+                : "Transférer entre deux de vos comptes"
+            }
+          >
+            <ArrowRightLeft className="size-4" aria-hidden="true" />
+            Nouveau transfert
+          </Button>
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" aria-hidden="true" />
+            Nouvelle transaction
+          </Button>
+        </div>
       </div>
 
       <TransactionFilters options={filterOptions} initial={filters} />
@@ -92,6 +110,11 @@ export function TransactionsPageClient({
         formData={formData}
         open={createOpen}
         onOpenChange={setCreateOpen}
+      />
+      <TransferDialog
+        accounts={formData.accounts}
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
       />
     </section>
   );

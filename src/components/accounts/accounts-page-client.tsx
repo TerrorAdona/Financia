@@ -1,19 +1,24 @@
 "use client";
 
-import { Plus, Wallet } from "lucide-react";
+import { ArrowRightLeft, Plus, Wallet } from "lucide-react";
 import { useState } from "react";
 
 import { AccountCard } from "@/components/accounts/account-card";
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog";
+import { TransferDialog } from "@/components/transfers/transfer-dialog";
 import { Button } from "@/components/ui/button";
 import type { AccountDTO } from "@/lib/services/accounts";
+import type { TransferAccountOption } from "@/lib/services/transfers";
 
 export function AccountsPageClient({
   accounts,
+  transferAccounts,
 }: {
   accounts: AccountDTO[];
+  transferAccounts: TransferAccountOption[];
 }) {
   const [createOpen, setCreateOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   return (
     <section className="flex flex-1 flex-col gap-6">
@@ -26,10 +31,26 @@ export function AccountsPageClient({
               : `${accounts.length} compte(s) — soldes en devise d'origine.`}
           </p>
         </div>
-        <Button type="button" onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" aria-hidden="true" />
-          Nouveau compte
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setTransferOpen(true)}
+            disabled={transferAccounts.length < 2}
+            title={
+              transferAccounts.length < 2
+                ? "Créez au moins deux comptes actifs pour effectuer un transfert."
+                : "Transférer entre deux de vos comptes"
+            }
+          >
+            <ArrowRightLeft className="size-4" aria-hidden="true" />
+            Nouveau transfert
+          </Button>
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" aria-hidden="true" />
+            Nouveau compte
+          </Button>
+        </div>
       </div>
 
       {accounts.length === 0 ? (
@@ -58,6 +79,11 @@ export function AccountsPageClient({
       )}
 
       <AccountFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <TransferDialog
+        accounts={transferAccounts}
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
+      />
     </section>
   );
 }

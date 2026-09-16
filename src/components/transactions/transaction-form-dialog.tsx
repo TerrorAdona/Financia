@@ -32,7 +32,7 @@ import type {
 } from "@/lib/services/transactions";
 
 export type TransactionFormData = {
-  accounts: Array<{ id: string; name: string; currency: string }>;
+  accounts: Array<{ id: string; name: string; currency: string; balance: string }>;
   categories: Array<{
     id: string;
     name: string;

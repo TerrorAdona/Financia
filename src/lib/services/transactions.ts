@@ -1,6 +1,8 @@
 import { Prisma, type TransactionType } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import type { Currency } from "@/lib/account-schemas";
+import { formatMoney } from "@/lib/money";
 import { notifyLargeTransaction, isLargeTransaction } from "@/lib/services/notifications";
 import {
   createTransactionSchema,
@@ -38,7 +40,7 @@ export type TransactionsResult<T = undefined> = {
   error?: string;
 };
 
-type TxRow = {
+export type TxRow = {
   id: string;
   description: string;
   amount: Prisma.Decimal;
@@ -55,7 +57,7 @@ type TxRow = {
   } | null;
 };
 
-function toDTO(row: TxRow): TransactionListItem {
+export function toTransactionDTO(row: TxRow): TransactionListItem {
   return {
     id: row.id,
     description: row.description,
@@ -76,11 +78,15 @@ function toDTO(row: TxRow): TransactionListItem {
   };
 }
 
-const rowInclude = {
+export const transactionRowInclude = {
   account: { select: { id: true, name: true, currency: true } },
   toAccount: { select: { id: true, name: true, currency: true } },
   category: { select: { id: true, name: true, color: true, icon: true } },
 } as const;
+
+/** Anciens noms internes conservés pour les usages existants du module. */
+const rowInclude = transactionRowInclude;
+const toDTO = toTransactionDTO;
 
 function firstIssue(error: unknown): string {
   if (
@@ -185,6 +191,45 @@ async function checkRelations(
   return { relations: { accountId: account.id, toAccountId, categoryId } };
 }
 
+/**
+ * Gardes métier d'un transfert, à appeler DANS une transaction Prisma :
+ * existence + appartenance des deux comptes, comptes non archivés,
+ * même devise, et solde suffisant sur la source (lecture fraîche).
+ * Retourne le message d'erreur ou null si tout est valide.
+ */
+export async function checkTransferGuards(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  fromAccountId: string,
+  toAccountId: string,
+  amount: Prisma.Decimal,
+): Promise<string | null> {
+  const [source, dest] = await Promise.all([
+    tx.account.findFirst({
+      where: { id: fromAccountId, userId },
+      select: { id: true, name: true, balance: true, currency: true, isArchived: true },
+    }),
+    tx.account.findFirst({
+      where: { id: toAccountId, userId },
+      select: { id: true, name: true, balance: true, currency: true, isArchived: true },
+    }),
+  ]);
+  if (!source) return "Compte source introuvable.";
+  if (!dest) return "Compte destinataire introuvable.";
+  if (source.isArchived)
+    return `Le compte « ${source.name} » est archivé : transfert impossible.`;
+  if (dest.isArchived)
+    return `Le compte « ${dest.name} » est archivé : transfert impossible.`;
+  if (source.currency !== dest.currency)
+    return "Le transfert entre deux comptes de devises différentes est impossible.";
+  if (source.balance.lt(amount)) {
+    const available = Number(source.balance.toFixed(2));
+    const required = Number(amount.toFixed(2));
+    return `Solde insuffisant sur « ${source.name} » (disponible : ${formatMoney(available, source.currency as Currency)}, requis : ${formatMoney(required, source.currency as Currency)}).`;
+  }
+  return null;
+}
+
 /** Liste paginée/filtrée/triée — ne charge que les colonnes du tableau. */
 export async function listTransactions(
   userId: string,
@@ -271,6 +316,16 @@ export async function createTransaction(
         categoryId: v.categoryId,
       });
       if (checked.error) throw new Error(checked.error);
+      if (v.type === "TRANSFER") {
+        const guardError = await checkTransferGuards(
+          tx,
+          userId,
+          checked.relations!.accountId,
+          checked.relations!.toAccountId as string,
+          amount,
+        );
+        if (guardError) throw new Error(guardError);
+      }
       const created = await tx.transaction.create({
         data: {
           description: v.description,
@@ -348,6 +403,19 @@ export async function updateTransaction(
         }).map((m) => ({ ...m, delta: m.delta.neg() })),
       );
 
+      // Nouveau transfert : contrôle sur le solde APRES annulation
+      // (l'ancien montant a été recrédité à la source).
+      if (v.type === "TRANSFER") {
+        const guardError = await checkTransferGuards(
+          tx,
+          userId,
+          checked.relations!.accountId,
+          checked.relations!.toAccountId as string,
+          amount,
+        );
+        if (guardError) throw new Error(guardError);
+      }
+
       const updated = await tx.transaction.update({
         where: { id: existing.id },
         data: {
@@ -421,7 +489,7 @@ export async function deleteTransaction(
 
 /** Comptes et catégories de l'utilisateur pour les formulaires/filtres. */
 export async function getTransactionFormData(userId: string): Promise<{
-  accounts: Array<{ id: string; name: string; currency: string }>;
+  accounts: Array<{ id: string; name: string; currency: string; balance: string }>;
   categories: Array<{
     id: string;
     name: string;
@@ -434,7 +502,7 @@ export async function getTransactionFormData(userId: string): Promise<{
     prisma.account.findMany({
       where: { userId, isArchived: false },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, currency: true },
+      select: { id: true, name: true, currency: true, balance: true },
     }),
     prisma.category.findMany({
       where: { userId },
@@ -443,7 +511,7 @@ export async function getTransactionFormData(userId: string): Promise<{
     }),
   ]);
   return {
-    accounts,
+    accounts: accounts.map((a) => ({ ...a, balance: a.balance.toFixed(2) })),
     categories: categories
       .filter((c) => c.type !== "TRANSFER")
       .map((c) => ({
