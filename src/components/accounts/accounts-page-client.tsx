@@ -13,9 +13,11 @@ import type { TransferAccountOption } from "@/lib/services/transfers";
 export function AccountsPageClient({
   accounts,
   transferAccounts,
+  defaultCurrency,
 }: {
   accounts: AccountDTO[];
   transferAccounts: TransferAccountOption[];
+  defaultCurrency: string;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -78,7 +80,11 @@ export function AccountsPageClient({
         </div>
       )}
 
-      <AccountFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <AccountFormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        defaultCurrency={defaultCurrency}
+      />
       <TransferDialog
         accounts={transferAccounts}
         open={transferOpen}

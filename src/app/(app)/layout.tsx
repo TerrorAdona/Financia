@@ -25,7 +25,7 @@ export default async function AppLayout({
   const [user, unreadCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, email: true },
+      select: { name: true, email: true, image: true },
     }),
     prisma.notification.count({ where: { userId, isRead: false } }),
   ]);
@@ -36,6 +36,7 @@ export default async function AppLayout({
         user={{
           name: user?.name ?? session.user.name ?? null,
           email: user?.email ?? session.user.email ?? null,
+          image: user?.image ?? session.user.image ?? null,
         }}
       />
       <SidebarInset>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronsUpDown, LogOut, Settings, User } from "lucide-react";
 
 import { logoutAction } from "@/app/actions/auth";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +38,13 @@ export function UserMenu({ user }: { user: ShellUser }) {
             }
           >
             <Avatar className="size-8 rounded-lg">
+              {user.image ? (
+                <AvatarImage
+                  src={user.image}
+                  alt=""
+                  className="rounded-lg"
+                />
+              ) : null}
               <AvatarFallback className="rounded-lg">
                 {getInitials(user.name, user.email)}
               </AvatarFallback>
@@ -59,6 +66,13 @@ export function UserMenu({ user }: { user: ShellUser }) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="size-8 rounded-lg">
+                  {user.image ? (
+                    <AvatarImage
+                      src={user.image}
+                      alt=""
+                      className="rounded-lg"
+                    />
+                  ) : null}
                   <AvatarFallback className="rounded-lg">
                     {getInitials(user.name, user.email)}
                   </AvatarFallback>
@@ -73,11 +87,11 @@ export function UserMenu({ user }: { user: ShellUser }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem render={<Link href="/parametres" />}>
+              <DropdownMenuItem render={<Link href="/settings" />}>
                 <User className="size-4" aria-hidden="true" />
                 Mon compte
               </DropdownMenuItem>
-              <DropdownMenuItem render={<Link href="/parametres" />}>
+              <DropdownMenuItem render={<Link href="/settings" />}>
                 <Settings className="size-4" aria-hidden="true" />
                 Paramètres
               </DropdownMenuItem>

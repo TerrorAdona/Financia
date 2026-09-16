@@ -21,6 +21,7 @@ const PRIVATE_PREFIXES = [
   "/categories",
   "/notifications",
   "/parametres",
+  "/settings",
 ];
 
 function isPrivatePath(pathname: string): boolean {
@@ -60,6 +61,7 @@ export const config = {
     "/categories/:path*",
     "/notifications/:path*",
     "/parametres/:path*",
+    "/settings/:path*",
     "/login",
     "/register",
   ],

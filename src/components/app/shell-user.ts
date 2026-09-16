@@ -1,6 +1,7 @@
 export type ShellUser = {
   name: string | null;
   email: string | null;
+  image: string | null;
 };
 
 /** Initiales pour l'avatar : "Aina Rakoto" -> "AR", sinon 1re lettre de l'email. */

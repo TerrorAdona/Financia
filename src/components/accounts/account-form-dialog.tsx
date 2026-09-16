@@ -30,9 +30,12 @@ type FormValues = CreateAccountInput;
 
 function AccountForm({
   account,
+  defaultCurrency,
   onDone,
 }: {
   account?: AccountDTO | null;
+  /** Devise présélectionnée en création (préférence /settings). */
+  defaultCurrency?: string;
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -48,7 +51,10 @@ function AccountForm({
     defaultValues: {
       name: account?.name ?? "",
       type: account?.type ?? "CASH",
-      currency: (account?.currency as FormValues["currency"]) ?? "MGA",
+      currency:
+        (account?.currency as FormValues["currency"]) ??
+        (defaultCurrency as FormValues["currency"]) ??
+        "MGA",
       balance: account ? Number(account.balance) : 0,
     },
   });
@@ -161,11 +167,14 @@ function AccountForm({
 
 export function AccountFormDialog({
   account,
+  defaultCurrency,
   open,
   onOpenChange,
 }: {
   /** Défini en mode édition, absent en mode création. */
   account?: AccountDTO | null;
+  /** Devise présélectionnée en création (préférence /settings). */
+  defaultCurrency?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -188,6 +197,7 @@ export function AccountFormDialog({
           <AccountForm
             key={account?.id ?? "new"}
             account={account}
+            defaultCurrency={defaultCurrency}
             onDone={() => onOpenChange(false)}
           />
         ) : null}

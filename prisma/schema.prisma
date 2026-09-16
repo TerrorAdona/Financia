@@ -67,6 +67,10 @@ model User {
   name         String?
   passwordHash String?
   image        String?
+  // Préférences d'affichage (modifiable via /settings, valeurs Zod côté app).
+  preferredCurrency String @default("MGA") @db.Char(3)
+  locale            String @default("fr")
+  dateFormat        String @default("dd/MM/yyyy")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

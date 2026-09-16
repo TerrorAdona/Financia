@@ -46,7 +46,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Système",
     items: [
       { href: "/notifications", label: "Notifications", icon: Bell },
-      { href: "/parametres", label: "Paramètres", icon: Settings },
+      { href: "/settings", label: "Paramètres", icon: Settings },
     ],
   },
 ];
