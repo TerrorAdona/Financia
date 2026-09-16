@@ -52,6 +52,16 @@ export const updateGoalSchema = baseGoalSchema.extend({
     .max(999_999_999_999.99, "Montant trop élevé."),
 });
 
+/**
+ * Validation côté formulaire en édition : règles `update` sans le `id`
+ * (ajouté seulement à l'appel de l'action, depuis les props).
+ * Valider avec `updateGoalSchema` bloquerait silencieusement la
+ * soumission (champ `id` requis mais jamais affiché).
+ * Note : contrairement à la création, une date cible passée reste
+ * autorisée ici (objectifs en retard modifiables).
+ */
+export const editGoalSchema = updateGoalSchema.omit({ id: true });
+
 export const contributeGoalSchema = z.object({
   id: z.string({ required_error: "Identifiant requis." }).cuid("Objectif invalide."),
   amount: z.coerce

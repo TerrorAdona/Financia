@@ -22,7 +22,7 @@ import {
   CATEGORY_ICONS,
   CATEGORY_TYPES,
   createCategorySchema,
-  updateCategorySchema,
+  editCategorySchema,
   type CreateCategoryInput,
 } from "@/lib/category-schemas";
 import type { CategoryDTO } from "@/lib/services/categories";
@@ -48,7 +48,8 @@ function CategoryForm({
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(isEdit ? updateCategorySchema : createCategorySchema),
+    // En édition : règles `update` sans le `id` (voir editCategorySchema).
+    resolver: zodResolver(isEdit ? editCategorySchema : createCategorySchema),
     defaultValues: {
       name: category?.name ?? "",
       type: category?.type ?? "EXPENSE",

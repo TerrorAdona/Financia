@@ -19,7 +19,7 @@ import {
 import { toInputDateValue } from "@/lib/dates";
 import {
   createGoalSchema,
-  updateGoalSchema,
+  editGoalSchema,
   type CreateGoalInput,
 } from "@/lib/goal-schemas";
 import type { GoalDTO } from "@/lib/services/goals";
@@ -43,8 +43,9 @@ function GoalForm({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
+    // En édition : règles `update` sans le `id` (voir editGoalSchema).
     resolver: zodResolver(
-      isEdit ? updateGoalSchema : createGoalSchema,
+      isEdit ? editGoalSchema : createGoalSchema,
     ) as unknown as Resolver<FormValues>,
     defaultValues: {
       name: goal?.name ?? "",

@@ -19,7 +19,7 @@ import {
 import {
   ACCOUNT_TYPES,
   createAccountSchema,
-  updateAccountSchema,
+  editAccountSchema,
   type CreateAccountInput,
 } from "@/lib/account-schemas";
 import { ACCOUNT_TYPE_LABELS } from "@/lib/money";
@@ -43,7 +43,8 @@ function AccountForm({
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(isEdit ? updateAccountSchema : createAccountSchema),
+    // En édition : règles `update` sans le `id` (voir editAccountSchema).
+    resolver: zodResolver(isEdit ? editAccountSchema : createAccountSchema),
     defaultValues: {
       name: account?.name ?? "",
       type: account?.type ?? "CASH",

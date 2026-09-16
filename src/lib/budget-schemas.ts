@@ -31,6 +31,14 @@ export const updateBudgetSchema = baseBudgetSchema.extend({
   id: z.string({ required_error: "Identifiant requis." }).cuid("Budget invalide."),
 });
 
+/**
+ * Validation côté formulaire en édition : règles `update` sans le `id`
+ * (ajouté seulement à l'appel de l'action, depuis les props).
+ * Valider avec `updateBudgetSchema` bloquerait silencieusement la
+ * soumission (champ `id` requis mais jamais affiché).
+ */
+export const editBudgetSchema = updateBudgetSchema.omit({ id: true });
+
 export type CreateBudgetInput = z.infer<typeof createBudgetSchema>;
 export type UpdateBudgetInput = z.infer<typeof updateBudgetSchema>;
 

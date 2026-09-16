@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { currentMonth, monthToRange } from "@/lib/budget-schemas";
 import * as accountsSvc from "@/lib/services/accounts";
 import * as budgetsSvc from "@/lib/services/budgets";
+import * as categoriesSvc from "@/lib/services/categories";
 import * as goalsSvc from "@/lib/services/goals";
 import * as notificationsSvc from "@/lib/services/notifications";
 import * as settingsSvc from "@/lib/services/settings";
@@ -399,5 +400,111 @@ describe("paramètres et sécurité", () => {
       direct.transferRequest.count({ where: { OR: [{ senderId: d.id }, { recipientId: d.id }] } }),
     ]);
     assert.deepEqual(rest, [0, 0, 0, 0, 0, 0]);
+  });
+});
+
+describe("modifications (chemins update réussis)", () => {
+  it("budget, catégorie, objectif et transaction se modifient", async () => {
+    const u = await makeUser("upd");
+    const acc = await direct.account.create({
+      data: { name: "Cash", type: "CASH", currency: "MGA", balance: MGA(1_000_000), userId: u.id },
+    });
+    const acc2 = await direct.account.create({
+      data: { name: "Banque", type: "BANK", currency: "MGA", balance: MGA(0), userId: u.id },
+    });
+    const catFood = await direct.category.create({
+      data: { name: "Alimentation", type: "EXPENSE", icon: "ShoppingCart", color: "#22c55e", userId: u.id },
+    });
+
+    // Transaction : création puis modification (montant + description).
+    const created = await transactionsSvc.createTransaction(u.id, {
+      description: "Marché",
+      amount: 50_000,
+      type: "EXPENSE",
+      accountId: acc.id,
+      categoryId: catFood.id,
+      date: new Date(),
+      note: null,
+    });
+    assert.ok(!created.error && created.data, created.error);
+    const edited = await transactionsSvc.updateTransaction(u.id, {
+      id: created.data!.id,
+      description: "Marché modifié",
+      amount: 60_000,
+      type: "EXPENSE",
+      accountId: acc.id,
+      categoryId: catFood.id,
+      date: new Date(),
+      note: null,
+    });
+    assert.ok(!edited.error && edited.data, edited.error);
+    assert.equal(edited.data!.description, "Marché modifié");
+    assert.equal(edited.data!.amount, "60000.00");
+    // Solde recalculé : 1 000 000 - 60 000 (ancien effet annulé).
+    assert.equal((await balances([acc.id]))[acc.id], 940_000);
+
+    // Transaction convertie en transfert vers le 2e compte.
+    const asTransfer = await transactionsSvc.updateTransaction(u.id, {
+      id: created.data!.id,
+      description: "Retrait",
+      amount: 100_000,
+      type: "TRANSFER",
+      accountId: acc.id,
+      toAccountId: acc2.id,
+      date: new Date(),
+      note: null,
+    });
+    assert.ok(!asTransfer.error && asTransfer.data?.toAccount?.id === acc2.id, asTransfer.error);
+
+    // Budget : création puis modification (nom + plafond).
+    const month = currentMonth();
+    const budget = await budgetsSvc.createBudget(u.id, {
+      name: "Budget",
+      categoryId: catFood.id,
+      month,
+      amountLimit: 500_000,
+    });
+    assert.ok(!budget.error && budget.data, budget.error);
+    const budgetUpd = await budgetsSvc.updateBudget(u.id, {
+      id: budget.data!.id,
+      name: "Budget modifié",
+      categoryId: catFood.id,
+      month,
+      amountLimit: 600_000,
+    });
+    assert.ok(!budgetUpd.error, budgetUpd.error);
+    assert.equal(budgetUpd.data!.name, "Budget modifié");
+    assert.equal(budgetUpd.data!.amountLimit, "600000.00");
+
+    // Catégorie : renommage.
+    const catUpd = await categoriesSvc.updateCategory(u.id, {
+      id: catFood.id,
+      name: "Courses",
+      type: "EXPENSE",
+      icon: "ShoppingCart",
+      color: "#22c55e",
+    });
+    assert.ok(!catUpd.error && catUpd.data?.name === "Courses", catUpd.error);
+
+    // Objectif : modification y compris date cible passée (en retard).
+    const goal = await goalsSvc.createGoal(u.id, {
+      name: "Moto",
+      description: "",
+      targetAmount: 1_000_000,
+      currentAmount: 100_000,
+      deadline: new Date(Date.now() + 30 * 86_400_000),
+    });
+    assert.ok(!goal.error && goal.data, goal.error);
+    const goalUpd = await goalsSvc.updateGoal(u.id, {
+      id: goal.data!.id,
+      name: "Moto modifiée",
+      description: "",
+      targetAmount: 1_200_000,
+      currentAmount: 200_000,
+      deadline: new Date(Date.now() - 5 * 86_400_000),
+    });
+    assert.ok(!goalUpd.error, goalUpd.error);
+    assert.equal(goalUpd.data!.name, "Moto modifiée");
+    assert.equal(goalUpd.data!.status, "OVERDUE");
   });
 });

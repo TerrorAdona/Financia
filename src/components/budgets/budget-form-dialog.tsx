@@ -20,7 +20,7 @@ import {
 import {
   createBudgetSchema,
   currentMonth,
-  updateBudgetSchema,
+  editBudgetSchema,
   type CreateBudgetInput,
 } from "@/lib/budget-schemas";
 import type { BudgetDTO } from "@/lib/services/budgets";
@@ -55,7 +55,8 @@ function BudgetForm({
     watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(isEdit ? updateBudgetSchema : createBudgetSchema),
+    // En édition : règles `update` sans le `id` (voir editBudgetSchema).
+    resolver: zodResolver(isEdit ? editBudgetSchema : createBudgetSchema),
     defaultValues: {
       name: budget?.name ?? "",
       categoryId: budget?.category.id ?? categories[0]?.id ?? "",

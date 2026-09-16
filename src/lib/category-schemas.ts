@@ -93,5 +93,13 @@ export const updateCategorySchema = baseCategorySchema.extend({
   id: z.string({ required_error: "Identifiant requis." }).cuid("Catégorie invalide."),
 });
 
+/**
+ * Validation côté formulaire en édition : règles `update` sans le `id`
+ * (ajouté seulement à l'appel de l'action, depuis les props).
+ * Valider avec `updateCategorySchema` bloquerait silencieusement la
+ * soumission (champ `id` requis mais jamais affiché).
+ */
+export const editCategorySchema = updateCategorySchema.omit({ id: true });
+
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;

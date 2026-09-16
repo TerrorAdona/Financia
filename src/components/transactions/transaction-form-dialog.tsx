@@ -23,7 +23,7 @@ import { toInputDateValue, todayInputValue } from "@/lib/dates";
 import { TRANSACTION_TYPE_LABELS } from "@/lib/transaction-schemas";
 import {
   createTransactionSchema,
-  updateTransactionSchema,
+  editTransactionSchema,
   type CreateTransactionInput,
 } from "@/lib/transaction-schemas";
 import type {
@@ -66,7 +66,8 @@ function TransactionForm({
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
-    resolver: zodResolver(isEdit ? updateTransactionSchema : createTransactionSchema),
+    // En édition : règles `update` sans le `id` (voir editTransactionSchema).
+    resolver: zodResolver(isEdit ? editTransactionSchema : createTransactionSchema),
     defaultValues: {
       description: transaction?.description ?? "",
       amount: transaction ? Number(transaction.amount) : 0,

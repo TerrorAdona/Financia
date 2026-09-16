@@ -102,6 +102,17 @@ export const updateTransactionSchema = transferRules(
   }),
 );
 
+/**
+ * Validation côté formulaire en édition : `updateTransactionSchema` étant
+ * enveloppé par `transferRules` (ZodEffects, sans `.omit()`), on réutilise
+ * `createTransactionSchema`, strictement équivalent une fois l'`id` retiré
+ * (le refine de transfert n'inspecte pas l'`id`).
+ * L'`id` est ajouté seulement à l'appel de l'action, depuis les props :
+ * valider avec `updateTransactionSchema` bloquerait silencieusement la
+ * soumission (champ `id` requis mais jamais affiché).
+ */
+export const editTransactionSchema = createTransactionSchema;
+
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
 
