@@ -23,7 +23,7 @@ describe("createAccountSchema", () => {
     );
   });
 
-  it("refuse solde négatif, devise inconnue et nom trop court", () => {
+  it("refuse solde négatif, devise non-MGA et nom trop court", () => {
     const base = { name: "MVola", type: "CASH", currency: "MGA", balance: 0 };
     assert.equal(
       createAccountSchema.safeParse({ ...base, balance: -1 }).success,
@@ -31,6 +31,10 @@ describe("createAccountSchema", () => {
     );
     assert.equal(
       createAccountSchema.safeParse({ ...base, currency: "CHF" }).success,
+      false,
+    );
+    assert.equal(
+      createAccountSchema.safeParse({ ...base, currency: "EUR" }).success,
       false,
     );
     assert.equal(

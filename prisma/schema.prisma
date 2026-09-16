@@ -68,7 +68,7 @@ model User {
   passwordHash String?
   image        String?
   // Préférences d'affichage (modifiable via /settings, valeurs Zod côté app).
-  preferredCurrency String @default("MGA") @db.Char(3)
+  // Devise unique : Ariary (MGA), sans sélecteur.
   locale            String @default("fr")
   dateFormat        String @default("dd/MM/yyyy")
   createdAt    DateTime @default(now())

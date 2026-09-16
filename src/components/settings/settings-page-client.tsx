@@ -47,7 +47,7 @@ export function SettingsPageClient({ initial }: { initial: SettingsDTO }) {
         <CardHeader>
           <CardTitle>Préférences</CardTitle>
           <CardDescription>
-            Devise, langue et format de date de votre espace.
+            Devise unique (Ariary), langue et format de date de votre espace.
           </CardDescription>
         </CardHeader>
         <CardContent>

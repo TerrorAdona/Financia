@@ -6,7 +6,6 @@ import { AccountsPageClient } from "@/components/accounts/accounts-page-client";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUserId } from "@/lib/auth-helpers";
 import { listAccounts } from "@/lib/services/accounts";
-import { getSettings } from "@/lib/services/settings";
 import { listTransferAccounts } from "@/lib/services/transfers";
 import { cn } from "@/lib/utils";
 
@@ -17,10 +16,9 @@ export const metadata: Metadata = {
 
 export default async function AccountsPage() {
   const userId = await requireUserId();
-  const [result, transferAccounts, settings] = await Promise.all([
+  const [result, transferAccounts] = await Promise.all([
     listAccounts(userId),
     listTransferAccounts(userId),
-    getSettings(userId),
   ]);
 
   if (result.error || !result.data) {
@@ -50,7 +48,6 @@ export default async function AccountsPage() {
     <AccountsPageClient
       accounts={result.data}
       transferAccounts={transferAccounts}
-      defaultCurrency={settings.data?.preferredCurrency ?? "MGA"}
     />
   );
 }

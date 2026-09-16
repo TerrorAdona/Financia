@@ -9,8 +9,6 @@ import { toast } from "sonner";
 import { updatePreferencesAction } from "@/app/actions/settings";
 import { Field, FormError, inputClassName } from "@/components/auth/form-fields";
 import { Button } from "@/components/ui/button";
-import { CURRENCIES, type Currency } from "@/lib/account-schemas";
-import { CURRENCY_LABELS } from "@/lib/money";
 import {
   DATE_FORMAT_LABELS,
   DATE_FORMATS,
@@ -23,16 +21,15 @@ import type { SettingsDTO } from "@/lib/services/settings";
 
 const LOCALE_TAGS: Record<string, string> = { fr: "fr-FR", en: "en-US" };
 
-/** Aperçu localisé : 1 500 000 dans la devise + 16/09/2026 au format choisi. */
+/** Aperçu localisé : 1 500 000 Ar + 16/09/2026 au format choisi. */
 export function formatSettingsPreview(
   locale: string,
   dateFormat: string,
-  currency: string,
 ): { amount: string; date: string } {
   const tag = LOCALE_TAGS[locale] ?? "fr-FR";
   const amount = new Intl.NumberFormat(tag, {
     style: "currency",
-    currency,
+    currency: "MGA",
     maximumFractionDigits: 0,
   }).format(1_500_000);
   const d = new Date(Date.UTC(2026, 8, 16));
@@ -60,7 +57,6 @@ export function PreferencesForm({ initial }: { initial: SettingsDTO }) {
   } = useForm<UpdatePreferencesInput>({
     resolver: zodResolver(updatePreferencesSchema),
     defaultValues: {
-      preferredCurrency: (initial.preferredCurrency as Currency) ?? "MGA",
       locale: (initial.locale === "en" ? "en" : "fr") as "fr" | "en",
       dateFormat: (DATE_FORMATS as readonly string[]).includes(initial.dateFormat)
         ? (initial.dateFormat as UpdatePreferencesInput["dateFormat"])
@@ -68,11 +64,7 @@ export function PreferencesForm({ initial }: { initial: SettingsDTO }) {
     },
   });
 
-  const preview = formatSettingsPreview(
-    watch("locale"),
-    watch("dateFormat"),
-    watch("preferredCurrency"),
-  );
+  const preview = formatSettingsPreview(watch("locale"), watch("dateFormat"));
 
   const onSubmit = async (values: UpdatePreferencesInput) => {
     setServerError(null);
@@ -88,22 +80,7 @@ export function PreferencesForm({ initial }: { initial: SettingsDTO }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Field id="settings-currency" label="Devise" error={errors.preferredCurrency}>
-          <select
-            id="settings-currency"
-            className={inputClassName}
-            aria-invalid={!!errors.preferredCurrency}
-            {...register("preferredCurrency")}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {CURRENCY_LABELS[c]}
-              </option>
-            ))}
-          </select>
-        </Field>
-
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field id="settings-locale" label="Langue" error={errors.locale}>
           <select
             id="settings-locale"
@@ -136,10 +113,11 @@ export function PreferencesForm({ initial }: { initial: SettingsDTO }) {
       </div>
 
       <p role="status" className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+        Devise unique : <span className="font-medium text-foreground">Ariary (Ar)</span>
+        {" · "}
         Aperçu : <span className="font-medium text-foreground">{preview.amount}</span>
         {" · "}
         <span className="font-medium text-foreground">{preview.date}</span>
-        {" — la devise est aussi présélectionnée à la création d'un compte."}
       </p>
 
       <FormError message={serverError} />

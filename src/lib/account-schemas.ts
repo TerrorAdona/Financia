@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const CURRENCIES = ["MGA", "EUR", "USD"] as const;
+/** Devise unique du site : Ariary (MGA). */
+export const CURRENCIES = ["MGA"] as const;
 export type Currency = (typeof CURRENCIES)[number];
 
 export const ACCOUNT_TYPES = [

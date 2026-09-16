@@ -43,9 +43,7 @@ export async function updateProfileAction(
 
 export async function updatePreferencesAction(
   input: UpdatePreferencesInput,
-): Promise<
-  SettingsResult<Pick<SettingsDTO, "preferredCurrency" | "locale" | "dateFormat">>
-> {
+): Promise<SettingsResult<Pick<SettingsDTO, "locale" | "dateFormat">>> {
   const userId = await requireUserId();
   const result = await updatePreferencesService(userId, input);
   if (!result.error) revalidateSettings();

@@ -4,8 +4,6 @@ import type { Currency } from "@/lib/account-schemas";
 
 export const CURRENCY_LABELS: Record<Currency, string> = {
   MGA: "Ariary (Ar)",
-  EUR: "Euro (€)",
-  USD: "Dollar ($)",
 };
 
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
@@ -21,20 +19,10 @@ const mgaGrouping = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 0,
 });
 
-const eurFormat = new Intl.NumberFormat("fr-FR", {
-  style: "currency",
-  currency: "EUR",
-});
-
-const usdFormat = new Intl.NumberFormat("fr-FR", {
-  style: "currency",
-  currency: "USD",
-});
-
 /**
- * Formate un montant selon la devise.
- * MGA : "1 500 000 Ar" (Ariary indivisible, sans décimales).
- * EUR/USD : format monétaire fr-FR ("1 234,50 €").
+ * Formate un montant en Ariary : "1 500 000 Ar"
+ * (Ariary indivisible, sans décimales). Le paramètre `currency` est
+ * conservé pour compatibilité (vaut toujours "MGA").
  */
 export function formatMoney(
   amount: number | string,
@@ -42,7 +30,6 @@ export function formatMoney(
 ): string {
   const n = typeof amount === "string" ? Number(amount) : amount;
   if (!Number.isFinite(n)) return "—";
-  if (currency === "MGA") return `${mgaGrouping.format(n)} Ar`;
-  if (currency === "EUR") return eurFormat.format(n);
-  return usdFormat.format(n);
+  void currency;
+  return `${mgaGrouping.format(n)} Ar`;
 }

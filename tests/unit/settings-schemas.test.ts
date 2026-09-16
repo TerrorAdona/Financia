@@ -50,7 +50,6 @@ describe("updatePreferencesSchema", () => {
   it("accepte des préférences valides et refuse l'inconnu", () => {
     assert.equal(
       updatePreferencesSchema.safeParse({
-        preferredCurrency: "EUR",
         locale: "en",
         dateFormat: "yyyy-MM-dd",
       }).success,
@@ -58,15 +57,6 @@ describe("updatePreferencesSchema", () => {
     );
     assert.equal(
       updatePreferencesSchema.safeParse({
-        preferredCurrency: "CHF",
-        locale: "fr",
-        dateFormat: "dd/MM/yyyy",
-      }).success,
-      false,
-    );
-    assert.equal(
-      updatePreferencesSchema.safeParse({
-        preferredCurrency: "MGA",
         locale: "de",
         dateFormat: "dd/MM/yyyy",
       }).success,
@@ -74,7 +64,6 @@ describe("updatePreferencesSchema", () => {
     );
     assert.equal(
       updatePreferencesSchema.safeParse({
-        preferredCurrency: "MGA",
         locale: "fr",
         dateFormat: "JJ.MM.AAAA",
       }).success,

@@ -18,24 +18,20 @@ import {
 } from "@/components/ui/dialog";
 import {
   ACCOUNT_TYPES,
-  CURRENCIES,
   createAccountSchema,
   updateAccountSchema,
   type CreateAccountInput,
 } from "@/lib/account-schemas";
-import { ACCOUNT_TYPE_LABELS, CURRENCY_LABELS } from "@/lib/money";
+import { ACCOUNT_TYPE_LABELS } from "@/lib/money";
 import type { AccountDTO } from "@/lib/services/accounts";
 
 type FormValues = CreateAccountInput;
 
 function AccountForm({
   account,
-  defaultCurrency,
   onDone,
 }: {
   account?: AccountDTO | null;
-  /** Devise présélectionnée en création (préférence /settings). */
-  defaultCurrency?: string;
   onDone: () => void;
 }) {
   const router = useRouter();
@@ -51,10 +47,9 @@ function AccountForm({
     defaultValues: {
       name: account?.name ?? "",
       type: account?.type ?? "CASH",
-      currency:
-        (account?.currency as FormValues["currency"]) ??
-        (defaultCurrency as FormValues["currency"]) ??
-        "MGA",
+      // Devise unique du site : Ariary. Les éventuels anciens comptes
+      // non-MGA sont normalisés à la prochaine modification (montants inchangés).
+      currency: "MGA",
       balance: account ? Number(account.balance) : 0,
     },
   });
@@ -106,20 +101,13 @@ function AccountForm({
           </select>
         </Field>
 
-        <Field id="account-currency" label="Devise" error={errors.currency}>
-          <select
-            id="account-currency"
-            className={inputClassName}
-            aria-invalid={!!errors.currency}
-            {...register("currency")}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {CURRENCY_LABELS[c]}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <div>
+          <p className="text-sm font-medium">Devise</p>
+          <p className="mt-1 rounded-lg bg-muted px-3 py-2 text-sm">
+            Ariary (Ar) — devise unique du site
+          </p>
+          <input type="hidden" {...register("currency")} />
+        </div>
       </div>
 
       <Field
@@ -167,14 +155,11 @@ function AccountForm({
 
 export function AccountFormDialog({
   account,
-  defaultCurrency,
   open,
   onOpenChange,
 }: {
   /** Défini en mode édition, absent en mode création. */
   account?: AccountDTO | null;
-  /** Devise présélectionnée en création (préférence /settings). */
-  defaultCurrency?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -190,14 +175,13 @@ export function AccountFormDialog({
           <DialogDescription>
             {isEdit
               ? "Mettez à jour les informations du compte."
-              : "Créez un compte pour suivre son solde en Ariary, euros ou dollars."}
+              : "Créez un compte pour suivre son solde en Ariary."}
           </DialogDescription>
         </DialogHeader>
         {open ? (
           <AccountForm
             key={account?.id ?? "new"}
             account={account}
-            defaultCurrency={defaultCurrency}
             onDone={() => onOpenChange(false)}
           />
         ) : null}

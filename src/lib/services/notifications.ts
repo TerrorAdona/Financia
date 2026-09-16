@@ -29,11 +29,9 @@ export type NotificationsResult<T = undefined> = {
  */
 export const GOAL_NEAR_THRESHOLD = 80;
 
-/** Seuil « transaction importante » par devise (montant >= seuil). */
+/** Seuil « transaction importante » en Ariary (montant >= seuil). */
 export const LARGE_TRANSACTION_THRESHOLDS: Record<Currency, number> = {
   MGA: 500_000,
-  EUR: 500,
-  USD: 500,
 };
 
 export function isLargeTransaction(amount: number, currency: string): boolean {
@@ -206,11 +204,7 @@ export async function notifyLargeTransaction(
   },
 ): Promise<void> {
   if (!isLargeTransaction(input.amount, input.currency)) return;
-  const currency = (["MGA", "EUR", "USD"] as const).includes(
-    input.currency as Currency,
-  )
-    ? (input.currency as Currency)
-    : "MGA";
+  const currency: Currency = "MGA";
   const kindLabel =
     input.type === "INCOME"
       ? "Revenu"

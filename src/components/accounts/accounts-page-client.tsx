@@ -13,11 +13,9 @@ import type { TransferAccountOption } from "@/lib/services/transfers";
 export function AccountsPageClient({
   accounts,
   transferAccounts,
-  defaultCurrency,
 }: {
   accounts: AccountDTO[];
   transferAccounts: TransferAccountOption[];
-  defaultCurrency: string;
 }) {
   const [createOpen, setCreateOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -30,7 +28,7 @@ export function AccountsPageClient({
           <p className="text-muted-foreground">
             {accounts.length === 0
               ? "Aucun compte pour le moment."
-              : `${accounts.length} compte(s) — soldes en devise d'origine.`}
+              : `${accounts.length} compte(s) — soldes en Ariary.`}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -83,7 +81,6 @@ export function AccountsPageClient({
       <AccountFormDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        defaultCurrency={defaultCurrency}
       />
       <TransferDialog
         accounts={transferAccounts}

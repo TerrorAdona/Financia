@@ -51,9 +51,9 @@ Comptes démo (seed local uniquement) : `demo@financia.mg` et
 - **Budgets** : plafonds mensuels, alertes 50/75/90/100 % (anti-doublons)
 - **Objectifs** : épargne, contributions, notifications « proche » (80 %) et « atteint »
 - **Notifications** : centre complet, marquage lu/non lu, compteur temps réel
-- **Paramètres** (`/settings`) : profil + avatar, devise/langue/format de date, thème clair/sombre/système, mot de passe, suppression de compte (confirmation forte, cascade Prisma)
+- **Paramètres** (`/settings`) : profil + avatar, langue/format de date, thème clair/sombre/système, mot de passe, suppression de compte (confirmation forte, cascade Prisma)
 
-Règles métier clés : un transfert n'est ni un revenu ni une dépense ;
+Règles métier clés : devise unique, l'Ariary (MGA) ; un transfert n'est ni un revenu ni une dépense ;
 solde insuffisant, devises différentes et comptes archivés bloquent tout
 transfert ; chaque utilisateur ne voit que ses propres données
 (`where: { userId }` systématique, validation Zod côté serveur).

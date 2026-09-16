@@ -19,7 +19,6 @@ export type SettingsDTO = {
   lastName: string;
   email: string;
   image: string | null;
-  preferredCurrency: string;
   locale: string;
   dateFormat: string;
   /** Faux pour les comptes sans mot de passe (changement impossible). */
@@ -46,7 +45,6 @@ export async function getSettings(
       lastName: true,
       email: true,
       image: true,
-      preferredCurrency: true,
       locale: true,
       dateFormat: true,
       passwordHash: true,
@@ -95,7 +93,6 @@ export async function updateProfile(
       lastName: true,
       email: true,
       image: true,
-      preferredCurrency: true,
       locale: true,
       dateFormat: true,
       passwordHash: true,
@@ -115,18 +112,17 @@ export async function updateProfile(
 export async function updatePreferences(
   userId: string,
   input: UpdatePreferencesInput,
-): Promise<SettingsResult<Pick<SettingsDTO, "preferredCurrency" | "locale" | "dateFormat">>> {
+): Promise<SettingsResult<Pick<SettingsDTO, "locale" | "dateFormat">>> {
   const parsed = updatePreferencesSchema.safeParse(input);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
 
   const updated = await prisma.user.update({
     where: { id: userId },
     data: {
-      preferredCurrency: parsed.data.preferredCurrency,
       locale: parsed.data.locale,
       dateFormat: parsed.data.dateFormat,
     },
-    select: { preferredCurrency: true, locale: true, dateFormat: true },
+    select: { locale: true, dateFormat: true },
   });
   return { data: updated };
 }

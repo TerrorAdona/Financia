@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { CURRENCIES } from "@/lib/account-schemas";
-
 const personNameField = (label: string) =>
   z
     .string({ required_error: `${label} requis.` })
@@ -64,11 +62,8 @@ export const DATE_FORMAT_LABELS: Record<DateFormatInput, string> = {
   "MM/dd/yyyy": "MM/JJ/AAAA — 09/16/2026",
 };
 
-/** Section Préférences : devise, langue, format de date. */
+/** Section Préférences : langue, format de date (devise unique : MGA). */
 export const updatePreferencesSchema = z.object({
-  preferredCurrency: z.enum(CURRENCIES, {
-    required_error: "Devise requise.",
-  }),
   locale: z.enum(LOCALES, { required_error: "Langue requise." }),
   dateFormat: z.enum(DATE_FORMATS, { required_error: "Format requis." }),
 });

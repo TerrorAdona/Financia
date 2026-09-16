@@ -108,6 +108,10 @@ describe("comptes", () => {
       balance: 1000,
     });
     assert.ok(!created.error && created.data, created.error);
+    // Devise unique : toute autre devise est rejetée.
+    assert.ok(
+      (await accountsSvc.createAccount(a.id, { name: "Euro", type: "BANK", currency: "EUR" as "MGA", balance: 0 })).error,
+    );
     assert.equal(
       (await accountsSvc.createAccount(a.id, { name: "Cash", type: "BANK", currency: "MGA", balance: 0 })).error?.includes("déjà"),
       true,
@@ -363,12 +367,12 @@ describe("paramètres et sécurité", () => {
     });
     assert.ok(!up.error && up.data!.firstName === "Nadia", up.error);
     const prefs = await settingsSvc.updatePreferences(u.id, {
-      preferredCurrency: "EUR",
       locale: "en",
       dateFormat: "yyyy-MM-dd",
     });
     assert.ok(!prefs.error, prefs.error);
-    assert.ok((await settingsSvc.updatePreferences(u.id, { preferredCurrency: "CHF" as "MGA", locale: "fr", dateFormat: "dd/MM/yyyy" })).error);
+    assert.deepEqual(prefs.data, { locale: "en", dateFormat: "yyyy-MM-dd" });
+    assert.ok((await settingsSvc.updatePreferences(u.id, { locale: "de" as "fr", dateFormat: "dd/MM/yyyy" })).error);
     assert.ok((await settingsSvc.changePassword(u.id, { currentPassword: "faux", newPassword: "Nouveau-99", confirmPassword: "Nouveau-99" })).error);
     const np = `New-${uid()}-77`;
     assert.ok(!(await settingsSvc.changePassword(u.id, { currentPassword: u.password, newPassword: np, confirmPassword: np })).error);
