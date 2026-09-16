@@ -1,22 +1,31 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 const MGA = (n: number | string) => new Prisma.Decimal(n);
 
 const DEMO_EMAIL = "demo@financia.mg";
+const DEMO_PASSWORD = "Demo-2026";
+const DEMO2_EMAIL = "bema@financia.mg";
+const DEMO2_PASSWORD = "Demo-2026";
 
 /**
  * Jeu de démonstration Financia — montants réalistes en Ariary (MGA).
- * Idempotent : purge les données de l'utilisateur démo avant recréation.
+ * Idempotent : purge les données des utilisateurs démo avant recréation.
+ * Développement local uniquement (mots de passe documentés ci-dessus).
  */
 async function main() {
   // Purge ciblée (ordre respectant les clés étrangères)
-  const existing = await prisma.user.findUnique({
-    where: { email: DEMO_EMAIL },
-    select: { id: true },
-  });
-  if (existing) {
+  for (const email of [DEMO_EMAIL, DEMO2_EMAIL]) {
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    if (!existing) continue;
     const userId = existing.id;
+    await prisma.transferRequest.deleteMany({
+      where: { OR: [{ senderId: userId }, { recipientId: userId }] },
+    });
     await prisma.notification.deleteMany({ where: { userId } });
     await prisma.transaction.deleteMany({ where: { userId } });
     await prisma.budget.deleteMany({ where: { userId } });
@@ -26,10 +35,14 @@ async function main() {
     await prisma.user.delete({ where: { id: userId } });
   }
 
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 4);
   const user = await prisma.user.create({
     data: {
       email: DEMO_EMAIL,
+      firstName: "Aina",
+      lastName: "Rakoto",
       name: "Aina Rakoto",
+      passwordHash,
     },
   });
 
@@ -268,7 +281,50 @@ async function main() {
     ],
   });
 
-  console.log(`Seed OK — utilisateur démo : ${DEMO_EMAIL}`);
+  // --- Second utilisateur démo + demande de transfert en attente ---
+  // Permet de tester le flux inter-utilisateurs depuis les deux comptes
+  // (recherche « bema », page /transfers, notification « Transfert reçu »).
+  const user2 = await prisma.user.create({
+    data: {
+      email: DEMO2_EMAIL,
+      firstName: "Bema",
+      lastName: "Hasina",
+      name: "Bema Hasina",
+      passwordHash,
+    },
+  });
+  const bemaCash = await prisma.account.create({
+    data: {
+      name: "Espèces Bema",
+      type: "CASH",
+      currency: "MGA",
+      balance: MGA(300_000),
+      userId: user2.id,
+    },
+  });
+  await prisma.transferRequest.create({
+    data: {
+      amount: MGA(100_000),
+      description: "Remboursement déjeuner",
+      status: "PENDING",
+      senderId: user2.id,
+      recipientId: user.id,
+      fromAccountId: bemaCash.id,
+      toAccountId: mvola.id,
+    },
+  });
+  await prisma.notification.create({
+    data: {
+      title: "Transfert reçu de Bema Hasina",
+      message:
+        "Bema Hasina vous propose un transfert de 100 000 Ar vers votre compte « MVola ». Acceptez ou refusez depuis la page Transferts.",
+      type: "INFO",
+      userId: user.id,
+    },
+  });
+
+  console.log(`Seed OK — démo 1 : ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
+  console.log(`Seed OK — démo 2 : ${DEMO2_EMAIL} / ${DEMO2_PASSWORD}`);
 }
 
 main()

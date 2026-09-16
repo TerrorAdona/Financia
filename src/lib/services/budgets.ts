@@ -14,7 +14,9 @@ import {
 } from "@/lib/budget-schemas";
 import { formatMoney } from "@/lib/money";
 import { budgetAlertTitle } from "@/lib/services/notifications";
+import { getPrimaryCurrency } from "@/lib/services/accounts";
 import { prisma } from "@/lib/prisma";
+import { firstIssue } from "@/lib/validation";
 
 export type BudgetStatus = "ok" | "watch" | "warning" | "alert" | "exceeded";
 
@@ -39,41 +41,12 @@ export type BudgetsResult<T = undefined> = {
 
 const toNum = (d: Prisma.Decimal) => Number(d.toFixed(2));
 
-function firstIssue(error: unknown): string {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray((error as { issues: unknown[] }).issues)
-  ) {
-    const first = (error as { issues: Array<{ message?: unknown }> }).issues[0];
-    if (typeof first?.message === "string") return first.message;
-  }
-  return "Données invalides.";
-}
-
 function statusFor(percent: number): BudgetStatus {
   if (percent > 100) return "exceeded";
   if (percent >= 90) return "alert";
   if (percent >= 75) return "warning";
   if (percent >= 50) return "watch";
   return "ok";
-}
-
-/** Devise de référence : MGA si présente, sinon celle du premier compte. */
-async function getPrimaryCurrency(
-  tx: Prisma.TransactionClient,
-  userId: string,
-): Promise<Currency | null> {
-  const accounts = await tx.account.findMany({
-    where: { userId, isArchived: false },
-    orderBy: { createdAt: "asc" },
-    select: { currency: true },
-  });
-  if (accounts.length === 0) return null;
-  return (accounts.some((a) => a.currency === "MGA")
-    ? "MGA"
-    : accounts[0].currency) as Currency;
 }
 
 type BudgetRow = {

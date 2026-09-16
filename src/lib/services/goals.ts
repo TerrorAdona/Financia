@@ -9,9 +9,10 @@ import {
   type UpdateGoalInput,
 } from "@/lib/goal-schemas";
 import { formatMoney } from "@/lib/money";
-import type { Currency } from "@/lib/account-schemas";
 import { maybeNotifyGoalNear } from "@/lib/services/notifications";
+import { getPrimaryCurrency } from "@/lib/services/accounts";
 import { prisma } from "@/lib/prisma";
+import { firstIssue } from "@/lib/validation";
 
 export type GoalStatus = "ACTIVE" | "COMPLETED" | "OVERDUE" | "EXCEEDED";
 
@@ -34,19 +35,6 @@ export type GoalsResult<T = undefined> = {
 };
 
 const toNum = (d: Prisma.Decimal) => Number(d.toFixed(2));
-
-function firstIssue(error: unknown): string {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray((error as { issues: unknown[] }).issues)
-  ) {
-    const first = (error as { issues: Array<{ message?: unknown }> }).issues[0];
-    if (typeof first?.message === "string") return first.message;
-  }
-  return "Données invalides.";
-}
 
 function computeDTO(row: {
   id: string;
@@ -98,21 +86,6 @@ function computeDTO(row: {
   };
 }
 
-/** Devise de référence pour les messages (MGA si présente). */
-async function getPrimaryCurrency(
-  tx: Prisma.TransactionClient,
-  userId: string,
-): Promise<Currency> {
-  const accounts = await tx.account.findMany({
-    where: { userId, isArchived: false },
-    orderBy: { createdAt: "asc" },
-    select: { currency: true },
-  });
-  return (
-    accounts.some((a) => a.currency === "MGA") ? "MGA" : (accounts[0]?.currency ?? "MGA")
-  ) as Currency;
-}
-
 export async function listGoals(userId: string): Promise<GoalsResult<GoalDTO[]>> {
   const goals = await prisma.savingsGoal.findMany({
     where: { userId },
@@ -152,7 +125,7 @@ export async function createGoal(
     return { data: computeDTO({ ...done }) };
   }
   // Objectif proche du but (≥ 80 %) : notification « proche » (une seule fois).
-  const currency = await getPrimaryCurrency(prisma, userId);
+  const currency = (await getPrimaryCurrency(prisma, userId)) ?? "MGA";
   await maybeNotifyGoalNear(
     userId,
     created.name,
@@ -194,7 +167,7 @@ export async function updateGoal(
   if (updated.status === "COMPLETED" && !wasCompleted) {
     await markCompleted(userId, updated.id);
   } else if (updated.status !== "COMPLETED") {
-    const currency = await getPrimaryCurrency(prisma, userId);
+    const currency = (await getPrimaryCurrency(prisma, userId)) ?? "MGA";
     await maybeNotifyGoalNear(
       userId,
       updated.name,
@@ -258,7 +231,7 @@ export async function contributeToGoal(
   if (updated.status === "COMPLETED" && existing.status !== "COMPLETED") {
     await markCompleted(userId, updated.id);
   } else if (updated.status !== "COMPLETED") {
-    const currency = await getPrimaryCurrency(prisma, userId);
+    const currency = (await getPrimaryCurrency(prisma, userId)) ?? "MGA";
     await maybeNotifyGoalNear(
       userId,
       updated.name,
@@ -277,7 +250,7 @@ async function markCompleted(userId: string, goalId: string): Promise<void> {
   const goal = await prisma.savingsGoal.findUniqueOrThrow({
     where: { id: goalId },
   });
-  const currency = await getPrimaryCurrency(prisma, userId);
+  const currency = (await getPrimaryCurrency(prisma, userId)) ?? "MGA";
   const target = toNum(goal.targetAmount);
   const current = toNum(goal.currentAmount);
   const over = current - target;

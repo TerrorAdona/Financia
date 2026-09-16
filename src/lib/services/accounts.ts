@@ -1,5 +1,6 @@
 import { Prisma, type AccountType } from "@prisma/client";
 
+import type { Currency } from "@/lib/account-schemas";
 import {
   createAccountSchema,
   updateAccountSchema,
@@ -7,6 +8,7 @@ import {
   type UpdateAccountInput,
 } from "@/lib/account-schemas";
 import { prisma } from "@/lib/prisma";
+import { firstIssue } from "@/lib/validation";
 
 export type AccountDTO = {
   id: string;
@@ -23,13 +25,20 @@ export type AccountsResult<T = undefined> = {
   error?: string;
 };
 
+type AccountCounts = {
+  transactions: number;
+  transfersIn: number;
+  outgoingTransferRequests: number;
+  incomingTransferRequests: number;
+};
+
 function toDTO(account: {
   id: string;
   name: string;
   type: AccountType;
   currency: string;
   balance: Prisma.Decimal;
-  _count?: { transactions: number; transfersIn: number };
+  _count?: AccountCounts;
 }): AccountDTO {
   return {
     id: account.id,
@@ -38,21 +47,42 @@ function toDTO(account: {
     currency: account.currency,
     balance: account.balance.toFixed(2),
     transactionCount:
-      (account._count?.transactions ?? 0) + (account._count?.transfersIn ?? 0),
+      (account._count?.transactions ?? 0) +
+      (account._count?.transfersIn ?? 0) +
+      (account._count?.outgoingTransferRequests ?? 0) +
+      (account._count?.incomingTransferRequests ?? 0),
   };
 }
 
-function firstIssue(error: unknown): string {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray((error as { issues: unknown[] }).issues)
-  ) {
-    const first = (error as { issues: Array<{ message?: unknown }> }).issues[0];
-    if (typeof first?.message === "string") return first.message;
-  }
-  return "Données invalides.";
+const countInclude = {
+  _count: {
+    select: {
+      transactions: true,
+      transfersIn: true,
+      outgoingTransferRequests: true,
+      incomingTransferRequests: true,
+    },
+  },
+} as const;
+
+/**
+ * Devise de référence : MGA si présente, sinon celle du premier compte
+ * (null si aucun compte actif). Partagée par budgets/goals pour les
+ * calculs et messages (comptes non archivés uniquement).
+ */
+export async function getPrimaryCurrency(
+  tx: Prisma.TransactionClient,
+  userId: string,
+): Promise<Currency | null> {
+  const accounts = await tx.account.findMany({
+    where: { userId, isArchived: false },
+    orderBy: { createdAt: "asc" },
+    select: { currency: true },
+  });
+  if (accounts.length === 0) return null;
+  return (accounts.some((a) => a.currency === "MGA")
+    ? "MGA"
+    : accounts[0].currency) as Currency;
 }
 
 /** Liste les comptes de l'utilisateur, triés par date de création. */
@@ -62,9 +92,7 @@ export async function listAccounts(
   const accounts = await prisma.account.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },
-    include: {
-      _count: { select: { transactions: true, transfersIn: true } },
-    },
+    include: countInclude,
   });
   return { data: accounts.map(toDTO) };
 }
@@ -86,9 +114,7 @@ export async function createAccount(
         balance: new Prisma.Decimal(parsed.data.balance.toFixed(2)),
         userId,
       },
-      include: {
-        _count: { select: { transactions: true, transfersIn: true } },
-      },
+      include: countInclude,
     });
     return { data: toDTO(account) };
   } catch (error) {
@@ -124,9 +150,7 @@ export async function updateAccount(
         currency: parsed.data.currency,
         balance: new Prisma.Decimal(parsed.data.balance.toFixed(2)),
       },
-      include: {
-        _count: { select: { transactions: true, transfersIn: true } },
-      },
+      include: countInclude,
     });
     return { data: toDTO(account) };
   } catch (error) {
@@ -142,8 +166,9 @@ export async function updateAccount(
 
 /**
  * Supprime un compte appartenant à l'utilisateur.
- * Refusée si des transactions y sont liées (le schéma cascaderait
- * sinon vers la suppression de l'historique).
+ * Refusée si des transactions ou des demandes de transfert y sont liées :
+ * le schéma cascaderait sinon vers la suppression de l'historique (y
+ * compris celui de l'autre utilisateur pour les transferts).
  */
 export async function deleteAccount(
   userId: string,
@@ -151,16 +176,21 @@ export async function deleteAccount(
 ): Promise<AccountsResult> {
   const existing = await prisma.account.findFirst({
     where: { id, userId },
-    include: {
-      _count: { select: { transactions: true, transfersIn: true } },
-    },
+    include: countInclude,
   });
   if (!existing) return { error: "Compte introuvable." };
 
-  const linked = existing._count.transactions + existing._count.transfersIn;
-  if (linked > 0) {
+  const linkedTx = existing._count.transactions + existing._count.transfersIn;
+  const linkedRequests =
+    existing._count.outgoingTransferRequests +
+    existing._count.incomingTransferRequests;
+  if (linkedTx > 0 || linkedRequests > 0) {
+    const parts: string[] = [];
+    if (linkedTx > 0) parts.push(`${linkedTx} transaction(s)`);
+    if (linkedRequests > 0)
+      parts.push(`${linkedRequests} demande(s) de transfert`);
     return {
-      error: `Impossible de supprimer ce compte : ${linked} transaction(s) y sont liées.`,
+      error: `Impossible de supprimer ce compte : ${parts.join(" et ")} y sont liées.`,
     };
   }
 

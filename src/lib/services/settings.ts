@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { firstIssue } from "@/lib/validation";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import type {
   ChangePasswordInput,
@@ -29,19 +30,6 @@ export type SettingsResult<T = undefined> = {
   data?: T;
   error?: string;
 };
-
-function firstIssue(error: unknown): string {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray((error as { issues: unknown[] }).issues)
-  ) {
-    const first = (error as { issues: Array<{ message?: unknown }> }).issues[0];
-    if (typeof first?.message === "string") return first.message;
-  }
-  return "Données invalides.";
-}
 
 /**
  * Toutes les fonctions prennent le userId de la SESSION (requireUserId)

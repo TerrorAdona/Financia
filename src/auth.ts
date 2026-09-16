@@ -11,6 +11,40 @@ declare module "next-auth" {
   }
 }
 
+/**
+ * Vérifie des identifiants email/mot de passe (exporté pour les tests).
+ * Retourne le profil de session ou null si invalide.
+ */
+export async function authorizeCredentials(credentials: unknown): Promise<{
+  id: string;
+  email: string;
+  name: string | null;
+} | null> {
+  const parsed = loginSchema.safeParse(credentials);
+  if (!parsed.success) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { email: parsed.data.email },
+  });
+  if (!user?.passwordHash) return null;
+
+  const valid = await verifyPassword(
+    parsed.data.password,
+    user.passwordHash,
+  );
+  if (!valid) return null;
+
+  const displayName =
+    (user.name ?? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()) ||
+    null;
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: displayName,
+  };
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
@@ -20,31 +54,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Mot de passe", type: "password" },
       },
-      authorize: async (credentials) => {
-        const parsed = loginSchema.safeParse(credentials);
-        if (!parsed.success) return null;
-
-        const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email },
-        });
-        if (!user?.passwordHash) return null;
-
-        const valid = await verifyPassword(
-          parsed.data.password,
-          user.passwordHash,
-        );
-        if (!valid) return null;
-
-        const displayName =
-          (user.name ?? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()) ||
-          null;
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: displayName,
-        };
-      },
+      authorize: authorizeCredentials,
     }),
   ],
   callbacks: {

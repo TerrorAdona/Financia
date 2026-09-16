@@ -1,6 +1,7 @@
 import { Prisma, type TransactionType } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { firstIssue } from "@/lib/validation";
 import type { Currency } from "@/lib/account-schemas";
 import { formatMoney } from "@/lib/money";
 import { notifyLargeTransaction, isLargeTransaction } from "@/lib/services/notifications";
@@ -87,19 +88,6 @@ export const transactionRowInclude = {
 /** Anciens noms internes conservés pour les usages existants du module. */
 const rowInclude = transactionRowInclude;
 const toDTO = toTransactionDTO;
-
-function firstIssue(error: unknown): string {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray((error as { issues: unknown[] }).issues)
-  ) {
-    const first = (error as { issues: Array<{ message?: unknown }> }).issues[0];
-    if (typeof first?.message === "string") return first.message;
-  }
-  return "Données invalides.";
-}
 
 function toDecimal(n: number): Prisma.Decimal {
   return new Prisma.Decimal(n.toFixed(2));

@@ -8,6 +8,7 @@ import {
   type UpdateCategoryInput,
 } from "@/lib/category-schemas";
 import { prisma } from "@/lib/prisma";
+import { firstIssue } from "@/lib/validation";
 
 export type CategoryKind = Exclude<TransactionType, "TRANSFER">;
 
@@ -51,19 +52,6 @@ function toDTO(category: {
 const countInclude = {
   _count: { select: { transactions: true, budgets: true } },
 } as const;
-
-function firstIssue(error: unknown): string {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "issues" in error &&
-    Array.isArray((error as { issues: unknown[] }).issues)
-  ) {
-    const first = (error as { issues: Array<{ message?: unknown }> }).issues[0];
-    if (typeof first?.message === "string") return first.message;
-  }
-  return "Données invalides.";
-}
 
 /** Crée les 17 catégories par défaut pour un nouvel utilisateur. */
 export async function seedDefaultCategories(userId: string): Promise<void> {
