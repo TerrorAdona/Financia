@@ -1,8 +1,11 @@
 import {
   AlarmClock,
+  ArrowDownLeft,
   Bell,
   CircleAlert,
+  CircleCheck,
   CircleDollarSign,
+  CircleX,
   PiggyBank,
   Target,
   TriangleAlert,
@@ -20,6 +23,9 @@ export type NotificationKindKey =
   | "goal-reached"
   | "goal-near"
   | "large-transaction"
+  | "transfer-received"
+  | "transfer-accepted"
+  | "transfer-declined"
   | "reminder"
   | "info";
 
@@ -29,6 +35,8 @@ export type NotificationKind = {
   icon: LucideIcon;
   badge: string;
   iconWrap: string;
+  /** Les notifications de transfert mènent vers la page Transferts. */
+  href?: string;
 };
 
 /**
@@ -114,6 +122,39 @@ export function getNotificationKind(n: NotificationDTO): NotificationKind {
       icon: CircleDollarSign,
       badge: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
       iconWrap: "bg-amber-500/10",
+    };
+
+  if (n.title.startsWith("Transfert reçu"))
+    return {
+      key: "transfer-received",
+      label: "Transfert reçu",
+      icon: ArrowDownLeft,
+      badge: "bg-sky-500/10 text-sky-700 dark:text-sky-400",
+      iconWrap: "bg-sky-500/10",
+      href: "/transfers",
+    };
+
+  if (n.title.startsWith("Transfert accepté"))
+    return {
+      key: "transfer-accepted",
+      label: "Transfert accepté",
+      icon: CircleCheck,
+      badge: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      iconWrap: "bg-emerald-500/10",
+      href: "/transfers",
+    };
+
+  if (
+    n.title.startsWith("Transfert refusé") ||
+    n.title.startsWith("Transfert annulé")
+  )
+    return {
+      key: "transfer-declined",
+      label: "Transfert refusé",
+      icon: CircleX,
+      badge: "bg-destructive/10 text-destructive",
+      iconWrap: "bg-destructive/10",
+      href: "/transfers",
     };
 
   return {

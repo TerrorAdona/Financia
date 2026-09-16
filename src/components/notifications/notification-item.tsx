@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Trash2 } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +78,19 @@ export function NotificationItem({
           </div>
 
           <div className="flex items-center gap-2 pt-1">
+            {kind.href ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                nativeButton={false}
+                render={<Link href={kind.href} />}
+                aria-label="Voir les transferts"
+              >
+                Voir les transferts
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Button>
+            ) : null}
             {!notification.isRead ? (
               <Button
                 type="button"

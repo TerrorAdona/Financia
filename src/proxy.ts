@@ -13,6 +13,7 @@ const SESSION_COOKIES = ["authjs.session-token", "__Secure-authjs.session-token"
 const PRIVATE_PREFIXES = [
   "/dashboard",
   "/transactions",
+  "/transfers",
   "/accounts",
   "/budgets",
   "/goals",
@@ -51,6 +52,7 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/transactions/:path*",
+    "/transfers/:path*",
     "/accounts/:path*",
     "/budgets/:path*",
     "/goals/:path*",

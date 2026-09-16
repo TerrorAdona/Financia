@@ -146,6 +146,25 @@ export function largeTransactionTitle(description: string): string {
   return `Transaction importante : ${short}`;
 }
 
+/* Titres des notifications de transfert inter-utilisateurs (type INFO).
+ * Les préfixes « Transfert reçu / accepté / refusé / annulé » servent
+ * aussi à la détection du kind d'affichage (notification-kind.ts). */
+export function transferReceivedTitle(senderName: string): string {
+  return `Transfert reçu de ${senderName}`;
+}
+
+export function transferAcceptedTitle(recipientName: string): string {
+  return `Transfert accepté par ${recipientName}`;
+}
+
+export function transferRejectedTitle(recipientName: string): string {
+  return `Transfert refusé par ${recipientName}`;
+}
+
+export function transferCancelledTitle(senderName: string): string {
+  return `Transfert annulé par ${senderName}`;
+}
+
 /**
  * Objectif proche (≥ 80 %, < 100 %) : crée une seule notification par
  * objectif (pas de doublon tant qu'elle existe, lue ou non).

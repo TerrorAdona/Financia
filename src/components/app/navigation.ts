@@ -1,5 +1,6 @@
 import {
   ArrowLeftRight,
+  ArrowRightLeft,
   Bell,
   ChartColumn,
   LayoutDashboard,
@@ -28,6 +29,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+      { href: "/transfers", label: "Transferts", icon: ArrowRightLeft },
       { href: "/accounts", label: "Comptes", icon: Wallet },
       { href: "/budgets", label: "Budgets", icon: PiggyBank },
       { href: "/goals", label: "Objectifs", icon: Target },

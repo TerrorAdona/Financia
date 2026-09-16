@@ -52,6 +52,13 @@ enum NotificationType {
   REMINDER
 }
 
+enum TransferRequestStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -69,6 +76,8 @@ model User {
   budgets       Budget[]
   goals         SavingsGoal[]
   notifications Notification[]
+  sentTransferRequests     TransferRequest[] @relation("SentTransferRequests")
+  receivedTransferRequests TransferRequest[] @relation("ReceivedTransferRequests")
 }
 
 model Account {
@@ -82,6 +91,8 @@ model Account {
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[] @relation("AccountTransactions")
   transfersIn  Transaction[] @relation("TransferDestination")
+  outgoingTransferRequests TransferRequest[] @relation("TransferSourceAccount")
+  incomingTransferRequests TransferRequest[] @relation("TransferDestAccount")
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -130,6 +141,10 @@ model Transaction {
   // Compte destinataire pour les virements internes (type TRANSFER).
   toAccountId String?
   toAccount   Account? @relation("TransferDestination", fields: [toAccountId], references: [id], onDelete: SetNull)
+
+  // Demande de transfert inter-utilisateurs ayant produit cette écriture
+  // (acceptation). Null pour les transactions ordinaires.
+  transferRequest TransferRequest?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -200,4 +215,44 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([userId, createdAt(sort: Desc)])
+}
+
+/**
+ * Demande de transfert inter-utilisateurs avec confirmation du destinataire.
+ *
+ * Cycle de vie : PENDING (aucun mouvement de fonds, aucune écriture) →
+ * COMPLETED (acceptée : écriture TRANSFER + débit/crédit atomiques) |
+ * REJECTED (refusée) | CANCELLED (annulée par l'expéditeur).
+ * Les transferts entre propres comptes restent instantanés (createTransfer).
+ */
+model TransferRequest {
+  id          String                @id @default(cuid())
+  amount      Decimal               @db.Decimal(19, 2)
+  description String?
+  status      TransferRequestStatus @default(PENDING)
+
+  senderId String
+  sender   User   @relation("SentTransferRequests", fields: [senderId], references: [id], onDelete: Cascade)
+
+  recipientId String
+  recipient   User   @relation("ReceivedTransferRequests", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  fromAccountId String
+  fromAccount   Account @relation("TransferSourceAccount", fields: [fromAccountId], references: [id], onDelete: Cascade)
+
+  toAccountId String
+  toAccount   Account @relation("TransferDestAccount", fields: [toAccountId], references: [id], onDelete: Cascade)
+
+  // Écriture comptable créée à l'acceptation (null tant que PENDING).
+  transactionId String?      @unique
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  decidedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([recipientId, status])
+  @@index([senderId, status])
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([senderId, createdAt(sort: Desc)])
 }
