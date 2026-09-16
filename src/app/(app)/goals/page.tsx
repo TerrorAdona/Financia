@@ -2,22 +2,30 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CircleAlert } from "lucide-react";
 
-import { NotificationsPageClient } from "@/components/notifications/notifications-page-client";
+import { GoalsPageClient } from "@/components/goals/goals-page-client";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUserId } from "@/lib/auth-helpers";
-import { listNotifications } from "@/lib/services/notifications";
+import type { Currency } from "@/lib/account-schemas";
+import { prisma } from "@/lib/prisma";
+import { listGoals } from "@/lib/services/goals";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Notifications",
-  description: "Alertes, rappels et mises à jour.",
+  title: "Objectifs",
+  description: "Suivez vos objectifs d'épargne.",
 };
 
-export default async function NotificationsPage() {
+export default async function GoalsPage() {
   const userId = await requireUserId();
-  const result = await listNotifications(userId);
+  const [result, accounts] = await Promise.all([
+    listGoals(userId),
+    prisma.account.findMany({
+      where: { userId, isArchived: false },
+      orderBy: { createdAt: "asc" },
+      select: { currency: true },
+    }),
+  ]);
 
-  // État error : chargement impossible (ex. base indisponible).
   if (result.error || !result.data) {
     return (
       <section className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
@@ -25,14 +33,14 @@ export default async function NotificationsPage() {
           <CircleAlert className="size-7 text-destructive" aria-hidden="true" />
         </span>
         <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-bold">Notifications indisponibles</h1>
+          <h1 className="text-xl font-bold">Objectifs indisponibles</h1>
           <p className="max-w-sm text-sm text-muted-foreground">
-            {result.error ?? "Impossible de charger vos notifications."}{" "}
-            Veuillez réessayer.
+            {result.error ?? "Impossible de charger vos objectifs."} Veuillez
+            réessayer.
           </p>
         </div>
         <Link
-          href="/notifications"
+          href="/goals"
           className={cn(buttonVariants({ variant: "outline" }))}
         >
           Réessayer
@@ -41,10 +49,9 @@ export default async function NotificationsPage() {
     );
   }
 
-  return (
-    <NotificationsPageClient
-      initialNotifications={result.data.notifications}
-      initialUnreadCount={result.data.unreadCount}
-    />
-  );
+  const currency = (
+    accounts.some((a) => a.currency === "MGA") ? "MGA" : (accounts[0]?.currency ?? "MGA")
+  ) as Currency;
+
+  return <GoalsPageClient goals={result.data} currency={currency} />;
 }

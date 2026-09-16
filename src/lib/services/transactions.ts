@@ -1,6 +1,7 @@
 import { Prisma, type TransactionType } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { notifyLargeTransaction, isLargeTransaction } from "@/lib/services/notifications";
 import {
   createTransactionSchema,
   transactionFiltersSchema,
@@ -295,6 +296,13 @@ export async function createTransaction(
       );
       return created;
     });
+    // Transaction importante : notification dédiée (une par transaction).
+    await notifyLargeTransaction(userId, {
+      description: row.description,
+      amount: Number(row.amount.toFixed(2)),
+      currency: row.account.currency,
+      type: row.type,
+    });
     return { data: toDTO(row) };
   } catch (error) {
     if (error instanceof Error) return { error: error.message };
@@ -313,11 +321,13 @@ export async function updateTransaction(
   const amount = toDecimal(v.amount);
 
   try {
+    let previousAmount: number | null = null;
     const row = await prisma.$transaction(async (tx) => {
       const existing = await tx.transaction.findFirst({
         where: { id: v.id, userId },
       });
       if (!existing) throw new Error("Transaction introuvable.");
+      previousAmount = Number(existing.amount.toFixed(2));
 
       const checked = await checkRelations(tx, userId, {
         type: v.type,
@@ -363,6 +373,20 @@ export async function updateTransaction(
       );
       return updated;
     });
+    // Devient importante à la modification : notifie une seule fois au franchissement.
+    const nextAmount = Number(row.amount.toFixed(2));
+    if (
+      previousAmount !== null &&
+      !isLargeTransaction(previousAmount, row.account.currency) &&
+      isLargeTransaction(nextAmount, row.account.currency)
+    ) {
+      await notifyLargeTransaction(userId, {
+        description: row.description,
+        amount: nextAmount,
+        currency: row.account.currency,
+        type: row.type,
+      });
+    }
     return { data: toDTO(row) };
   } catch (error) {
     if (error instanceof Error) return { error: error.message };

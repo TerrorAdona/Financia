@@ -30,13 +30,13 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
       { href: "/accounts", label: "Comptes", icon: Wallet },
       { href: "/budgets", label: "Budgets", icon: PiggyBank },
-      { href: "/objectifs", label: "Objectifs", icon: Target },
+      { href: "/goals", label: "Objectifs", icon: Target },
     ],
   },
   {
     title: "Pilotage",
     items: [
-      { href: "/analyses", label: "Analyses", icon: ChartColumn },
+      { href: "/analytics", label: "Analyses", icon: ChartColumn },
       { href: "/categories", label: "Catégories", icon: Tags },
     ],
   },

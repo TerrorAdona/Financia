@@ -7,6 +7,7 @@ import type {
   UpdateTransactionInput,
 } from "@/lib/transaction-schemas";
 import { requireUserId } from "@/lib/auth-helpers";
+import { refreshBudgetAlerts } from "@/lib/services/budgets";
 import type {
   TransactionsResult,
   TransactionListItem,
@@ -22,6 +23,14 @@ function revalidateTransactionPages(): void {
   revalidatePath("/transactions");
   revalidatePath("/accounts");
   revalidatePath("/dashboard");
+  revalidatePath("/budgets");
+  revalidatePath("/notifications");
+}
+
+async function afterTransactionChange(userId: string): Promise<void> {
+  revalidateTransactionPages();
+  // Les soldes et seuils de budgets ont pu changer.
+  await refreshBudgetAlerts(userId);
 }
 
 export async function createTransactionAction(
@@ -29,7 +38,7 @@ export async function createTransactionAction(
 ): Promise<TransactionsResult<TransactionListItem>> {
   const userId = await requireUserId();
   const result = await createTransactionService(userId, input);
-  if (!result.error) revalidateTransactionPages();
+  if (!result.error) await afterTransactionChange(userId);
   return result;
 }
 
@@ -38,7 +47,7 @@ export async function updateTransactionAction(
 ): Promise<TransactionsResult<TransactionListItem>> {
   const userId = await requireUserId();
   const result = await updateTransactionService(userId, input);
-  if (!result.error) revalidateTransactionPages();
+  if (!result.error) await afterTransactionChange(userId);
   return result;
 }
 
@@ -47,7 +56,7 @@ export async function deleteTransactionAction(
 ): Promise<TransactionsResult> {
   const userId = await requireUserId();
   const result = await deleteTransactionService(userId, id);
-  if (!result.error) revalidateTransactionPages();
+  if (!result.error) await afterTransactionChange(userId);
   return result;
 }
 

@@ -154,6 +154,10 @@ model Budget {
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
+  // Plus haut seuil d'alerte déjà notifié (0, 50, 75, 90 ou 100).
+  // Évite les notifications en double lors des recalculs.
+  lastNotifiedThreshold Int @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -165,6 +169,7 @@ model Budget {
 model SavingsGoal {
   id            String     @id @default(cuid())
   name          String
+  description   String?    @db.Text
   targetAmount  Decimal    @db.Decimal(19, 2)
   currentAmount Decimal    @default(0) @db.Decimal(19, 2)
   deadline      DateTime?  @db.Date

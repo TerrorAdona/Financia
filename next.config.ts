@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
         destination: "/accounts/:path*",
         permanent: false,
       },
+      {
+        source: "/objectifs/:path*",
+        destination: "/goals/:path*",
+        permanent: false,
+      },
+      {
+        source: "/analyses/:path*",
+        destination: "/analytics/:path*",
+        permanent: false,
+      },
     ];
   },
 };
