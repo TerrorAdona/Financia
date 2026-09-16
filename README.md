@@ -51,6 +51,7 @@ Comptes démo (seed local uniquement) : `demo@financia.mg` et
 - **Budgets** : plafonds mensuels, alertes 50/75/90/100 % (anti-doublons)
 - **Objectifs** : épargne, contributions, notifications « proche » (80 %) et « atteint »
 - **Notifications** : centre complet, marquage lu/non lu, compteur temps réel
+- **Assistant IA** : widget flottant (Groq) qui voit vos comptes, budgets et objectifs ; questions finances uniquement, 20 max / 10 min (`GROQ_API_KEY` requise)
 - **Paramètres** (`/settings`) : profil + avatar, langue/format de date, thème clair/sombre/système, mot de passe, suppression de compte (confirmation forte, cascade Prisma)
 
 Règles métier clés : devise unique, l'Ariary (MGA) ; un transfert n'est ni un revenu ni une dépense ;

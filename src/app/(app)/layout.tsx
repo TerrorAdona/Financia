@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { AppTopbar } from "@/components/app/app-topbar";
+import { AssistantChat } from "@/components/assistant/assistant-chat";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { prisma } from "@/lib/prisma";
@@ -46,6 +47,7 @@ export default async function AppLayout({
         </main>
       </SidebarInset>
       <Toaster richColors closeButton />
+      <AssistantChat />
     </SidebarProvider>
   );
 }
